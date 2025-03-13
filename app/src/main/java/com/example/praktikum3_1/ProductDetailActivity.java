@@ -1,29 +1,23 @@
 package com.example.praktikum3_1;
 
-import android.graphics.Paint;
 import android.os.Bundle;
-import android.view.MenuItem;
-import android.view.View;
 import android.widget.ImageView;
-
+import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
-
 import com.bumptech.glide.Glide;
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.android.material.button.MaterialButton;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.textview.MaterialTextView;
-
 import java.text.NumberFormat;
 import java.util.Locale;
 
 public class ProductDetailActivity extends AppCompatActivity {
-    private MaterialToolbar toolbar;
     private ImageView ivProductImage;
     private MaterialTextView tvProductName, tvPrice, tvOriginalPrice;
     private MaterialTextView tvStock, tvCategory, tvDescription;
     private Chip chipDiscount;
-    private MaterialButton btnAddToCart;
+    private MaterialToolbar toolbar;
+    private NumberFormat formatter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,21 +26,20 @@ public class ProductDetailActivity extends AppCompatActivity {
 
         initializeViews();
         setupToolbar();
+        setupFormatter();
         displayProductDetails();
     }
 
     private void initializeViews() {
-        toolbar = findViewById(R.id.toolbar);
         ivProductImage = findViewById(R.id.ivProductImage);
         tvProductName = findViewById(R.id.tvProductName);
         tvPrice = findViewById(R.id.tvPrice);
         tvOriginalPrice = findViewById(R.id.tvOriginalPrice);
-        chipDiscount = findViewById(R.id.chipDiscount);
         tvStock = findViewById(R.id.tvStock);
         tvCategory = findViewById(R.id.tvCategory);
-//        tvUnit = findViewById(R.id.tvUnit);
         tvDescription = findViewById(R.id.tvDescription);
-        btnAddToCart = findViewById(R.id.btnAddToCart);
+        chipDiscount = findViewById(R.id.chipDiscount);
+        toolbar = findViewById(R.id.toolbar);
     }
 
     private void setupToolbar() {
@@ -55,57 +48,69 @@ public class ProductDetailActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setDisplayShowHomeEnabled(true);
         }
+        toolbar.setNavigationOnClickListener(v -> onBackPressed());
+    }
+
+    private void setupFormatter() {
+        formatter = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
+        formatter.setMaximumFractionDigits(0);
     }
 
     private void displayProductDetails() {
         Product product = (Product) getIntent().getSerializableExtra("product");
-        if (product == null) return;
+        if (product == null) {
+            showToast("Product data not found");
+            finish();
+            return;
+        }
 
-        NumberFormat formatter = NumberFormat.getCurrencyInstance(new Locale("id", "ID"));
-        formatter.setMaximumFractionDigits(0);
-
-        // Set product name and image
-        tvProductName.setText(product.getMerk());
+        // Load product image
         Glide.with(this)
                 .load(product.getFoto())
                 .placeholder(R.drawable.ic_launcher_background)
                 .error(R.drawable.ic_launcher_background)
                 .into(ivProductImage);
 
-        // Set prices and discount
-        double discount = product.getDiskonjual();
-        if (discount > 0) {
-            chipDiscount.setVisibility(View.VISIBLE);
-            tvOriginalPrice.setVisibility(View.VISIBLE);
+        // Set product name
+        tvProductName.setText(product.getMerk());
 
-            chipDiscount.setText(String.format("%.0f%%", discount));
-            tvOriginalPrice.setText(formatter.format(product.getHargajual()));
-            tvOriginalPrice.setPaintFlags(tvOriginalPrice.getPaintFlags() | Paint.STRIKE_THRU_TEXT_FLAG);
+        // Handle pricing and discounts
+        double diskon = product.getDiskonjual();
+        double hargaAsli = product.getHargajual();
 
-            tvPrice.setText(formatter.format(product.getDiscountedPrice()));
+        if (diskon > 0) {
+            chipDiscount.setVisibility(android.view.View.VISIBLE);
+            tvOriginalPrice.setVisibility(android.view.View.VISIBLE);
+
+            chipDiscount.setText(String.format("%.0f%%", diskon));
+            tvOriginalPrice.setText(formatter.format(hargaAsli));
+            tvOriginalPrice.setPaintFlags(tvOriginalPrice.getPaintFlags() | android.graphics.Paint.STRIKE_THRU_TEXT_FLAG);
+
+            double hargaDiskon = product.getDiscountedPrice();
+            tvPrice.setText(formatter.format(hargaDiskon));
         } else {
-            chipDiscount.setVisibility(View.GONE);
-            tvOriginalPrice.setVisibility(View.GONE);
-            tvPrice.setText(formatter.format(product.getHargajual()));
+            chipDiscount.setVisibility(android.view.View.GONE);
+            tvOriginalPrice.setVisibility(android.view.View.GONE);
+            tvPrice.setText(formatter.format(hargaAsli));
         }
 
         // Set other product details
         tvStock.setText(product.getFormattedStock());
         tvCategory.setText(product.getFormattedCategory());
-//        tvUnit.setText(product.getFormattedUnit());
         tvDescription.setText(product.getDeskripsi());
 
-        btnAddToCart.setOnClickListener(v -> {
-            // TODO: Implement add to cart functionality
-        });
+        // Set up add to cart button
+        findViewById(R.id.btnAddToCart).setOnClickListener(v ->
+                showToast("Added to cart: " + product.getMerk())
+        );
+    }
+
+    private void showToast(String message) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            onBackPressed();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
+    public void onBackPressed() {
+        super.onBackPressed();
     }
 }

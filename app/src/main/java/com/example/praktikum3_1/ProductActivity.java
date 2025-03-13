@@ -1,32 +1,31 @@
 package com.example.praktikum3_1;
 
-import android.content.Intent;
-import android.graphics.Rect;
 import android.os.Bundle;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.TextView;
 import android.widget.Toast;
-
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
+import com.facebook.shimmer.ShimmerFrameLayout;
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.android.material.textview.MaterialTextView;
-
+import java.util.ArrayList;
 import java.util.List;
-
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
 public class ProductActivity extends AppCompatActivity {
-    private MaterialTextView tvWelcome;
     private RecyclerView recyclerView;
-    private ProductAdapter adapter;
+    private SwipeRefreshLayout swipeRefresh;
+    private ProductAdapter productAdapter;
     private MaterialToolbar toolbar;
+    private MaterialTextView tvWelcome;
+    private ShimmerFrameLayout shimmerFrameLayout;
+    private List<Product> productList;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,16 +35,29 @@ public class ProductActivity extends AppCompatActivity {
         initializeViews();
         setupToolbar();
         setupRecyclerView();
+        setupSwipeRefresh();
         loadProducts();
     }
 
     private void initializeViews() {
-        tvWelcome = findViewById(R.id.tvWelcome);
         recyclerView = findViewById(R.id.recyclerView);
         toolbar = findViewById(R.id.toolbar);
+        tvWelcome = findViewById(R.id.tvWelcome);
+        swipeRefresh = findViewById(R.id.swipeRefresh);
+        shimmerFrameLayout = findViewById(R.id.shimmerLayout);
 
+        // Set welcome text
         String nama = getIntent().getStringExtra("nama");
-        tvWelcome.setText(nama);
+        tvWelcome.setText("Welcome, " + nama);
+    }
+
+    private void setupSwipeRefresh() {
+        swipeRefresh.setColorSchemeResources(R.color.accent);
+        swipeRefresh.setOnRefreshListener(() -> {
+            productList.clear();
+            productAdapter.notifyDataSetChanged();
+            loadProducts();
+        });
     }
 
     private void setupToolbar() {
@@ -54,39 +66,47 @@ public class ProductActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
             getSupportActionBar().setDisplayShowHomeEnabled(true);
         }
+
+        toolbar.setNavigationOnClickListener(v -> onBackPressed());
     }
 
     private void setupRecyclerView() {
+        productList = new ArrayList<>();
+        productAdapter = new ProductAdapter(this, productList);
         recyclerView.setLayoutManager(new GridLayoutManager(this, 2));
-        recyclerView.addItemDecoration(new RecyclerView.ItemDecoration() {
-            @Override
-            public void getItemOffsets(@NonNull Rect outRect, @NonNull View view,
-                                       @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
-                int spacing = getResources().getDimensionPixelSize(R.dimen.grid_spacing);
-                outRect.set(spacing, spacing, spacing, spacing);
-            }
-        });
+        recyclerView.setAdapter(productAdapter);
     }
 
     private void loadProducts() {
+        shimmerFrameLayout.startShimmer();
+
         HomeAPI api = ServerAPI.getClient().create(HomeAPI.class);
         api.getProducts().enqueue(new Callback<List<Product>>() {
             @Override
             public void onResponse(Call<List<Product>> call, Response<List<Product>> response) {
                 if (response.isSuccessful() && response.body() != null) {
-                    adapter = new ProductAdapter(ProductActivity.this, response.body());
-                    recyclerView.setAdapter(adapter);
+                    productList.clear();
+                    productList.addAll(response.body());
+                    productAdapter.notifyDataSetChanged();
+                } else {
+                    showToast("Failed to load products");
                 }
+                shimmerFrameLayout.stopShimmer();
+                shimmerFrameLayout.setVisibility(android.view.View.GONE);
+                swipeRefresh.setRefreshing(false);
             }
 
             @Override
             public void onFailure(Call<List<Product>> call, Throwable t) {
-                showError("Error loading products: " + t.getMessage());
+                showToast("Network error: " + t.getMessage());
+                shimmerFrameLayout.stopShimmer();
+                shimmerFrameLayout.setVisibility(android.view.View.GONE);
+                swipeRefresh.setRefreshing(false);
             }
         });
     }
 
-    private void showError(String message) {
+    private void showToast(String message) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show();
     }
 
