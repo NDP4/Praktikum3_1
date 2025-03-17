@@ -81,7 +81,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:hint="Your Name"
+                android:hint="Full Name"
+                app:boxStrokeColor="@color/accent"
+                app:hintTextColor="@color/accent"
+                app:endIconMode="clear_text"
+                app:startIconDrawable="@drawable/person"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -98,6 +102,8 @@
                 android:hint="Email"
                 app:boxStrokeColor="@color/accent"
                 app:hintTextColor="@color/accent"
+                app:endIconMode="clear_text"
+                app:startIconDrawable="@drawable/email"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
@@ -112,7 +118,10 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
                 android:hint="Password"
+                app:boxStrokeColor="@color/accent"
+                app:hintTextColor="@color/accent"
                 app:endIconMode="password_toggle"
+                app:startIconDrawable="@drawable/password"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox">
 
                 <com.google.android.material.textfield.TextInputEditText
